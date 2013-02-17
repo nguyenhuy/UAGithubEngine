@@ -31,6 +31,8 @@
 @property (nonatomic, strong) NSURL *lastPageURL;
 @property (nonatomic, strong) NSMutableArray *multiPageArray;
 
++ (NSMutableString *)appendParams:(NSDictionary *)params toPath:(NSString *)path;
+
 - (id)sendRequest:(NSString *)path requestType:(UAGithubRequestType)requestType responseType:(UAGithubResponseType)responseType error:(NSError **)error;
 - (id)sendRequest:(NSString *)path requestType:(UAGithubRequestType)requestType responseType:(UAGithubResponseType)responseType page:(NSInteger)page error:(NSError **)error;
 - (id)sendRequest:(NSString *)path requestType:(UAGithubRequestType)requestType responseType:(UAGithubResponseType)responseType withParameters:(id)params error:(NSError **)error;
@@ -42,6 +44,27 @@
 @implementation UAGithubEngine
 
 @synthesize username, password, reachability, isReachable;
+
++ (NSMutableString *)appendParams:(NSDictionary *)params toPath:(NSString *)path {
+    NSMutableString *mutablePath = [NSMutableString stringWithString:path];
+
+    if (!params || params.count == 0) {
+        return mutablePath;
+    }
+    
+    // Is the querystring already present (ie a question mark is present in the path)? Create it if not.
+    if ([mutablePath rangeOfString:@"?"].location == NSNotFound)
+    {
+        [mutablePath appendString:@"?"];
+    }
+    
+    for (NSString *key in [params allKeys])
+    {
+        [mutablePath appendFormat:@"%@%@=%@", [mutablePath length] <= 1 ? @"" : @"&", key, [[params valueForKey:key] encodedString]];
+    }
+
+    return mutablePath;
+}
 
 #pragma mark
 #pragma mark Setup & Teardown
@@ -115,16 +138,7 @@
 
     if (!jsonData && [params count] > 0) 
 	{
-        // Is the querystring already present (ie a question mark is present in the path)? Create it if not.        
-        if ([path rangeOfString:@"?"].location == NSNotFound)
-        {
-            querystring = [NSMutableString stringWithString:@"?"];
-        }
-        
-		for (NSString *key in [params allKeys]) 
-		{
-			[querystring appendFormat:@"%@%@=%@", [querystring length] <= 1 ? @"" : @"&", key, [[params valueForKey:key] encodedString]];
-		}
+        querystring = [UAGithubEngine appendParams:params toPath:@""];
 	}
     
     if (page > 0)
@@ -1107,6 +1121,11 @@
 }
 
 
+- (void)repositoriesForOrganization:(NSString *)org withSuccess:(UAGithubEngineSuccessBlock)successBlock failure:(UAGithubEngineFailureBlock)failureBlock {
+    [self invoke:^(id self){[self sendRequest:[NSString stringWithFormat:@"orgs/%@/repos", org] requestType:UAGithubRepositoriesRequest responseType:UAGithubRepositoriesResponse error:nil];} success:successBlock failure:failureBlock];
+}
+
+
 - (void)repositoriesWithSuccess:(UAGithubEngineSuccessBlock)successBlock failure:(UAGithubEngineFailureBlock)failureBlock
 {
     [self invoke:^(id self){[self sendRequest:@"user/repos" requestType:UAGithubRepositoriesRequest responseType:UAGithubRepositoriesResponse error:nil];} success:successBlock failure:failureBlock];
@@ -1192,6 +1211,12 @@
 - (void)commitsForRepository:(NSString *)repositoryPath success:(UAGithubEngineSuccessBlock)successBlock failure:(UAGithubEngineFailureBlock)failureBlock
 {
 	[self invoke:^(id self){[self sendRequest:[NSString stringWithFormat:@"repos/%@/commits", repositoryPath] requestType:UAGithubCommitsRequest responseType:UAGithubCommitsResponse error:nil];} success:successBlock failure:failureBlock];	
+}
+
+- (void)commitsForRepository:(NSString *)repositoryPath withParameters:(NSDictionary *)params success:(UAGithubEngineSuccessBlock)successBlock failure:(UAGithubEngineFailureBlock)failureBlock
+{
+    NSMutableString *path = [UAGithubEngine appendParams:params toPath:[NSString stringWithFormat:@"repos/%@/commits", repositoryPath]];
+	[self invoke:^(id self){[self sendRequest:path requestType:UAGithubCommitsRequest responseType:UAGithubCommitsResponse error:nil];} success:successBlock failure:failureBlock];
 }
 
 
