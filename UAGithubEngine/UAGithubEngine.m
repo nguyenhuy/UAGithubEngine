@@ -1216,7 +1216,7 @@
 - (void)commitsForRepository:(NSString *)repositoryPath withParameters:(NSDictionary *)params success:(UAGithubEngineSuccessBlock)successBlock failure:(UAGithubEngineFailureBlock)failureBlock
 {
     NSMutableString *path = [UAGithubEngine appendParams:params toPath:[NSString stringWithFormat:@"repos/%@/commits", repositoryPath]];
-	[self invoke:^(id self){[self sendRequest:path requestType:UAGithubCommitsRequest responseType:UAGithubCommitsResponse error:nil];} success:successBlock failure:failureBlock];
+    [self invoke:^(id self){[self sendRequest:path requestType:UAGithubCommitsRequest responseType:UAGithubCommitsResponse error:nil];} success:successBlock failure:failureBlock];
 }
 
 
